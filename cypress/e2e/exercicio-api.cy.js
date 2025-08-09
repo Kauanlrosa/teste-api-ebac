@@ -80,10 +80,10 @@ describe('Testes da Funcionalidade Usuários', () => {
       password: password,
       administrador: 'true'
     },
-    failOnStatusCode: false
-    }).then((response) => {
-    expect(response.status).to.equal(400)
-    expect(response.body).to.have.property('email').that.equals('email deve ser um email válido')
+      failOnStatusCode: false
+      }).then((response) => {
+      expect(response.status).to.equal(400)
+      expect(response.body).to.have.property('email').that.equals('email deve ser um email válido')
   })
 })
   });
@@ -95,7 +95,7 @@ describe('Testes da Funcionalidade Usuários', () => {
         const nomeEditado = 'Nome Editado'
         const emailEditado = 'emaileditado@example.com'
 
-      cy.request({
+        cy.request({
         method: 'PUT',
         url: `/usuarios/${idUsuario}`,
         body: {
@@ -104,9 +104,9 @@ describe('Testes da Funcionalidade Usuários', () => {
         password: 'senha123',
         administrador: 'true'
       }
-    }).then((response) => {
-      expect(response.status).to.equal(200)
-      expect(response.body).to.have.property('message').that.equals('Registro alterado com sucesso')
+        }).then((response) => {
+        expect(response.status).to.equal(200)
+        expect(response.body).to.have.property('message').that.equals('Registro alterado com sucesso')
     })
   })
   });
