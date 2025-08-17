@@ -1,4 +1,4 @@
-// Jenkinsfile para Pipeline Declarativo - Usando a abordagem 'parallel'
+// Jenkinsfile para Pipeline Declarativo - Executando serverest diretamente
 
 pipeline {
     agent any
@@ -14,23 +14,18 @@ pipeline {
             }
         }
 
-        // Este estágio vai rodar a API e os testes em paralelo
         stage('Executar Testes com a API') {
             parallel {
-                // "Galho" 1: Iniciar e manter a API rodando
                 stage('Iniciar API') {
                     steps {
-                        echo 'Iniciando a API...'
-                        // Não precisa mais de 'start'. O Jenkins vai gerenciar o processo.
-                        // O pipeline vai ficar "preso" aqui, o que é o esperado.
-                        bat 'npx cross-env RESET_DB=true npm start'
+                        echo 'Iniciando a API diretamente do node_modules...'
+                        // SOLUÇÃO: Executa o serverest diretamente para evitar problemas com o npx
+                        bat 'npx cross-env RESET_DB=true .\\node_modules\\.bin\\serverest'
                     }
                 }
 
-                // "Galho" 2: Esperar, Resetar e Rodar os Testes
                 stage('Testar API') {
                     steps {
-                        // O script de retry ainda é útil aqui, pois o outro galho leva tempo.
                         echo 'Aguardando a API ficar online e tentando resetar...'
                         bat '''
                             set "ATTEMPTS=0"
@@ -56,7 +51,6 @@ pipeline {
                             exit /b 1
                         '''
 
-                        // Se o reset funcionou, rodamos os testes
                         echo 'Executando testes Cypress...'
                         bat 'set NO_COLOR=1 && npx cypress run --headless'
                     }
@@ -66,7 +60,6 @@ pipeline {
     }
 
     post {
-        // Não precisamos mais do kill-port, o Jenkins faz a limpeza automaticamente!
         always {
             echo 'Arquivando os artefatos de teste...'
             archiveArtifacts artifacts: 'cypress/reports/**, cypress/screenshots/**', allowEmptyArchive: true
