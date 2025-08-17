@@ -15,7 +15,6 @@ pipeline {
         stage('Iniciar API em Background') {
             steps {
                 echo 'Iniciando o servidor da API (serverest)...'
-                // Inicia a API em uma janela separada e continua imediatamente
                 bat 'start "API-Server" npx cross-env RESET_DB=true npm start'
             }
         }
@@ -23,23 +22,27 @@ pipeline {
         stage('Aguardar API e Resetar Banco') {
             steps {
                 echo 'Aguardando a API ficar online e tentando resetar...'
-                // SOLUÇÃO: Loop de retry no Windows. Tenta por até 60 segundos.
-                // O comando 'timeout' age como um 'sleep'.
-                // O 'exit /b 0' sai do loop com sucesso.
+                // SOLUÇÃO FINAL: Substitui o 'timeout' do Windows por uma pausa com Node.js
                 bat '''
                     set "ATTEMPTS=0"
                     :retry
-                    timeout /t 5 /nobreak > NUL
-                    node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { if (!res.ok) throw new Error('API respondeu com status ' + res.status); process.exit(0); }).catch(err => { process.exit(1); });"
+                    echo "Aguardando 5 segundos..."
+                    node -e "setTimeout(() => {}, 5000);"
+                    
+                    echo "Tentando conectar e resetar a API..."
+                    node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { if (!res.ok) throw new Error('API respondeu com status ' + res.status); process.exit(0); }).catch(err => { console.error(err.message); process.exit(1); });"
+                    
                     if %errorlevel% == 0 (
                         echo "API está online e foi resetada com sucesso."
                         exit /b 0
                     )
+                    
                     set /a "ATTEMPTS+=1"
                     if %ATTEMPTS% lss 12 (
                         echo "API ainda não está pronta, tentando novamente (%ATTEMPTS%/12)..."
                         goto retry
                     )
+                    
                     echo "ERRO: A API não ficou online após 60 segundos."
                     exit /b 1
                 '''
