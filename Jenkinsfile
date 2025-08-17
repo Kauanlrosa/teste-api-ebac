@@ -1,4 +1,4 @@
-// Jenkinsfile para Pipeline Declarativo - Versão Robusta com Node.js
+// Jenkinsfile para Pipeline Declarativo - Versão Final e Robusta
 
 pipeline {
     agent any
@@ -8,29 +8,31 @@ pipeline {
     }
 
     stages {
-        stage('Instalar Dependências (incluindo kill-port)') {
+        stage('Instalar Dependências' ) {
             steps {
-                // Agora também instala o 'kill-port' que adicionamos
+                // Instala todas as dependências de desenvolvimento, incluindo cross-env e kill-port
                 bat 'npm ci || npm install'
             }
         }
 
-        stage('Iniciar API e Resetar Estado') {
+        stage('Iniciar API com Reset Habilitado') {
             steps {
-                echo 'Iniciando o servidor da API (serverest)...'
-                bat 'start "API-Server" npm start'
+                echo 'Iniciando o servidor da API (serverest) com permissão de reset...'
+                // SOLUÇÃO 1: Usa 'cross-env' para setar a variável de ambiente que permite o reset do banco
+                bat 'start "API-Server" npx cross-env RESET_DB=true npm start'
                 
-                echo 'Aguardando 10 segundos para a API inicializar...'
-                sleep 10
-                
-                echo 'Resetando a base de dados da API usando Node.js...'
-                // SOLUÇÃO: Usa Node.js para fazer a requisição HTTP, em vez de 'curl'
-                bat '''
-                    node -e "require('http' ).get('http://localhost:3000/usuarios/reset', (res ) => { console.log('Reset solicitado. Status:', res.statusCode); process.exit(res.statusCode == 200 ? 0 : 1) }).on('error', (err) => { console.error('Erro no reset:', err.message); process.exit(1) });"
-                '''
+                echo 'Aguardando 15 segundos para a API inicializar completamente...'
+                sleep 15
+            }
+        }
 
-                echo 'Aguardando 5 segundos após o reset...'
-                sleep 5
+        stage('Resetar Banco de Dados da API') {
+            steps {
+                echo 'Resetando a base de dados da API usando o endpoint correto...'
+                // SOLUÇÃO 2: Usa o endpoint '/resetar-banco'
+                bat '''
+                    node -e "require('http' ).get('http://localhost:3000/resetar-banco', (res ) => { console.log('Reset solicitado. Status:', res.statusCode); process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', (err) => { console.error('Erro no reset:', err.message); process.exit(1) });"
+                '''
             }
         }
 
@@ -50,8 +52,6 @@ pipeline {
     post {
         always {
             echo 'Finalizando o processo da API na porta 3000...'
-            // SOLUÇÃO: Usa 'npx kill-port' para parar a API, em vez de taskkill/netstat
-            // O '|| echo' garante que o pipeline não falhe se a porta já estiver livre.
             bat 'npx kill-port 3000 || echo "Processo na porta 3000 não encontrado ou já finalizado."'
             
             echo 'Arquivando os artefatos de teste...'
