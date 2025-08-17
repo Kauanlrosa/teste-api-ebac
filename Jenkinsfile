@@ -1,4 +1,4 @@
-// Jenkinsfile para Pipeline Declarativo - Versão Final e Robusta
+// Jenkinsfile para Pipeline Declarativo - Corrigindo o método de Reset para POST
 
 pipeline {
     agent any
@@ -8,9 +8,8 @@ pipeline {
     }
 
     stages {
-        stage('Instalar Dependências' ) {
+        stage('Instalar Dependências') {
             steps {
-                // Instala todas as dependências de desenvolvimento, incluindo cross-env e kill-port
                 bat 'npm ci || npm install'
             }
         }
@@ -18,7 +17,6 @@ pipeline {
         stage('Iniciar API com Reset Habilitado') {
             steps {
                 echo 'Iniciando o servidor da API (serverest) com permissão de reset...'
-                // SOLUÇÃO 1: Usa 'cross-env' para setar a variável de ambiente que permite o reset do banco
                 bat 'start "API-Server" npx cross-env RESET_DB=true npm start'
                 
                 echo 'Aguardando 15 segundos para a API inicializar completamente...'
@@ -28,10 +26,10 @@ pipeline {
 
         stage('Resetar Banco de Dados da API') {
             steps {
-                echo 'Resetando a base de dados da API usando o endpoint correto...'
-                // SOLUÇÃO 2: Usa o endpoint '/resetar-banco'
+                echo 'Resetando a base de dados da API usando o método POST...'
+                // SOLUÇÃO: Usa fetch() do Node.js para enviar uma requisição POST.
                 bat '''
-                    node -e "require('http' ).get('http://localhost:3000/resetar-banco', (res ) => { console.log('Reset solicitado. Status:', res.statusCode); process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', (err) => { console.error('Erro no reset:', err.message); process.exit(1) });"
+                    node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { console.log('Reset solicitado. Status:', res.status); if (!res.ok) throw new Error('Status nao eh 200'); }).catch(err => { console.error('Erro no reset:', err.message); process.exit(1); });"
                 '''
             }
         }
@@ -44,7 +42,8 @@ pipeline {
 
         stage('Executar Testes de API com Cypress') {
             steps {
-                bat 'set NO_COLOR=1 && npm run cy:run'
+                // Adicionamos --headless aqui para garantir, embora seja o padrão
+                bat 'set NO_COLOR=1 && npx cypress run --headless'
             }
         }
     }
