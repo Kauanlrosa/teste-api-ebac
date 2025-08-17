@@ -1,4 +1,4 @@
-// Jenkinsfile para Pipeline Declarativo - Executando serverest diretamente
+// Jenkinsfile para Pipeline Declarativo - A Simplicidade do npm start
 
 pipeline {
     agent any
@@ -18,9 +18,9 @@ pipeline {
             parallel {
                 stage('Iniciar API') {
                     steps {
-                        echo 'Iniciando a API diretamente do node_modules...'
-                        // SOLUÇÃO: Executa o serverest diretamente para evitar problemas com o npx
-                        bat 'npx cross-env RESET_DB=true .\\node_modules\\.bin\\serverest'
+                        echo 'Iniciando a API com "npm start"...'
+                        // SOLUÇÃO FINAL: Deixa o npm fazer seu trabalho. Ele sabe como executar o serverest.
+                        bat 'npx cross-env RESET_DB=true npm start'
                     }
                 }
 
@@ -30,8 +30,8 @@ pipeline {
                         bat '''
                             set "ATTEMPTS=0"
                             :retry
-                            echo "Aguardando 5 segundos..."
-                            node -e "setTimeout(() => {}, 5000);"
+                            echo "Aguardando 10 segundos..."
+                            node -e "setTimeout(() => {}, 10000);"
                             
                             echo "Tentando conectar e resetar a API..."
                             node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { if (!res.ok) throw new Error('API respondeu com status ' + res.status); process.exit(0); }).catch(err => { console.error(err.message); process.exit(1); });"
@@ -42,8 +42,8 @@ pipeline {
                             )
                             
                             set /a "ATTEMPTS+=1"
-                            if %ATTEMPTS% lss 12 (
-                                echo "API ainda não está pronta, tentando novamente (%ATTEMPTS%/12)..."
+                            if %ATTEMPTS% lss 6 (
+                                echo "API ainda não está pronta, tentando novamente (%ATTEMPTS%/6)..."
                                 goto retry
                             )
                             
