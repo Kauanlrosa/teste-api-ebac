@@ -1,4 +1,4 @@
-// Jenkinsfile para Pipeline Declarativo - Corrigido erro de sintaxe
+// Jenkinsfile para Pipeline Declarativo - Invocação Direta do Node
 
 pipeline {
     agent any
@@ -18,10 +18,11 @@ pipeline {
             parallel {
                 stage('Iniciar API') {
                     steps {
-                        echo 'Iniciando a API diretamente do node_modules...'
-                        bat 'npx cross-env RESET_DB=true .\\node_modules\\.bin\\serverest'
+                        echo 'Iniciando a API com invocação direta do Node.js...'
+                        // SOLUÇÃO FINAL: Seta a variável e chama o node para executar o script do serverest
+                        bat 'set "RESET_DB=true" && node .\\node_modules\\serverest\\src\\server.js'
                     }
-                } // A chave extra foi removida daqui
+                }
 
                 stage('Testar API') {
                     steps {
