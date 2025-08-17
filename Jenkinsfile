@@ -1,4 +1,4 @@
-// Jenkinsfile para Pipeline Declarativo - A Simplicidade do npm start
+// Jenkinsfile para Pipeline Declarativo - Corrigido erro de sintaxe
 
 pipeline {
     agent any
@@ -18,12 +18,10 @@ pipeline {
             parallel {
                 stage('Iniciar API') {
                     steps {
-    echo 'Iniciando a API diretamente do node_modules...'
-    // VERIFIQUE SE ESTA É A LINHA QUE VOCÊ TEM:
-    bat 'npx cross-env RESET_DB=true .\\node_modules\\.bin\\serverest'
-}
+                        echo 'Iniciando a API diretamente do node_modules...'
+                        bat 'npx cross-env RESET_DB=true .\\node_modules\\.bin\\serverest'
                     }
-                }
+                } // A chave extra foi removida daqui
 
                 stage('Testar API') {
                     steps {
@@ -35,7 +33,7 @@ pipeline {
                             node -e "setTimeout(() => {}, 10000);"
                             
                             echo "Tentando conectar e resetar a API..."
-                            node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { if (!res.ok) throw new Error('API respondeu com status ' + res.status); process.exit(0); }).catch(err => { console.error(err.message); process.exit(1); });"
+                            node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' }  ).then(res => { if (!res.ok) throw new Error('API respondeu com status ' + res.status); process.exit(0); }).catch(err => { console.error(err.message); process.exit(1); });"
                             
                             if %errorlevel% == 0 (
                                 echo "API está online e foi resetada com sucesso."
