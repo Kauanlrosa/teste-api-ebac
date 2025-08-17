@@ -18,9 +18,10 @@ pipeline {
             parallel {
                 stage('Iniciar API') {
                     steps {
-                        echo 'Iniciando a API com "npm start"...'
-                        // SOLUÇÃO FINAL: Deixa o npm fazer seu trabalho. Ele sabe como executar o serverest.
-                        bat 'npx cross-env RESET_DB=true npm start'
+    echo 'Iniciando a API diretamente do node_modules...'
+    // VERIFIQUE SE ESTA É A LINHA QUE VOCÊ TEM:
+    bat 'npx cross-env RESET_DB=true .\\node_modules\\.bin\\serverest'
+}
                     }
                 }
 
