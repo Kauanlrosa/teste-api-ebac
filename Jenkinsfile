@@ -1,5 +1,3 @@
-// Jenkinsfile para Pipeline Declarativo - Corrigindo o método de Reset para POST
-
 pipeline {
     agent any
 
@@ -14,22 +12,36 @@ pipeline {
             }
         }
 
-        stage('Iniciar API com Reset Habilitado') {
+        stage('Iniciar API em Background') {
             steps {
-                echo 'Iniciando o servidor da API (serverest) com permissão de reset...'
+                echo 'Iniciando o servidor da API (serverest)...'
+                // Inicia a API em uma janela separada e continua imediatamente
                 bat 'start "API-Server" npx cross-env RESET_DB=true npm start'
-                
-                echo 'Aguardando 15 segundos para a API inicializar completamente...'
-                sleep 15
             }
         }
 
-        stage('Resetar Banco de Dados da API') {
+        stage('Aguardar API e Resetar Banco') {
             steps {
-                echo 'Resetando a base de dados da API usando o método POST...'
-                // SOLUÇÃO: Usa fetch() do Node.js para enviar uma requisição POST.
+                echo 'Aguardando a API ficar online e tentando resetar...'
+                // SOLUÇÃO: Loop de retry no Windows. Tenta por até 60 segundos.
+                // O comando 'timeout' age como um 'sleep'.
+                // O 'exit /b 0' sai do loop com sucesso.
                 bat '''
-                    node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { console.log('Reset solicitado. Status:', res.status); if (!res.ok) throw new Error('Status nao eh 200'); }).catch(err => { console.error('Erro no reset:', err.message); process.exit(1); });"
+                    set "ATTEMPTS=0"
+                    :retry
+                    timeout /t 5 /nobreak > NUL
+                    node -e "fetch('http://localhost:3000/resetar-banco', { method: 'POST' } ).then(res => { if (!res.ok) throw new Error('API respondeu com status ' + res.status); process.exit(0); }).catch(err => { process.exit(1); });"
+                    if %errorlevel% == 0 (
+                        echo "API está online e foi resetada com sucesso."
+                        exit /b 0
+                    )
+                    set /a "ATTEMPTS+=1"
+                    if %ATTEMPTS% lss 12 (
+                        echo "API ainda não está pronta, tentando novamente (%ATTEMPTS%/12)..."
+                        goto retry
+                    )
+                    echo "ERRO: A API não ficou online após 60 segundos."
+                    exit /b 1
                 '''
             }
         }
@@ -42,7 +54,6 @@ pipeline {
 
         stage('Executar Testes de API com Cypress') {
             steps {
-                // Adicionamos --headless aqui para garantir, embora seja o padrão
                 bat 'set NO_COLOR=1 && npx cypress run --headless'
             }
         }
