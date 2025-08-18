@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        SERVER_PID = ''
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -23,18 +19,17 @@ pipeline {
         stage('Rodar servidor da aplicação') {
             steps {
                 echo 'Iniciando servidor da aplicação...'
-                powershell '''
-                # Inicia o servidor em background e salva o PID
-                $process = Start-Process -NoNewWindow -FilePath "npm" -ArgumentList "start" -PassThru
-                $process.Id | Out-File server_pid.txt
-                Start-Sleep -Seconds 15
+                // Start em background + espera 15s para o servidor subir
+                bat '''
+                start /B npm start
+                timeout /t 15 /nobreak
                 '''
             }
         }
 
         stage('Executar testes Cypress') {
             steps {
-                echo 'Rodando Cypress...'
+                echo 'Rodando testes Cypress...'
                 bat 'npx cypress run'
             }
         }
@@ -42,15 +37,13 @@ pipeline {
 
     post {
         always {
-            echo 'Finalizando servidor da aplicação...'
-            powershell '''
-            if (Test-Path server_pid.txt) {
-                $pid = Get-Content server_pid.txt
-                Stop-Process -Id $pid -Force
-                Remove-Item server_pid.txt
-            }
-            '''
             echo 'Pipeline finalizado.'
+        }
+        success {
+            echo 'Todos os testes foram executados com sucesso!'
+        }
+        failure {
+            echo 'O pipeline falhou. Verifique os logs para detalhes.'
         }
     }
 }
