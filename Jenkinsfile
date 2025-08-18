@@ -4,23 +4,27 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                echo 'Clonando repositório...'
                 checkout scm
             }
         }
 
         stage('Instalar dependências') {
             steps {
+                echo 'Instalando pacotes...'
                 bat 'npm install'
             }
         }
 
-        stage('Rodar servidor') {
+        stage('Rodar servidor da aplicação') {
             steps {
                 echo 'Iniciando servidor da aplicação...'
-                // Inicia em background
-                bat 'start /B npm start'
-                // Espera 15 segundos para o servidor iniciar (ajuste se necessário)
-                bat 'timeout /t 15 /nobreak'
+                powershell '''
+                # Inicia o servidor em background
+                Start-Process -NoNewWindow -FilePath "npm" -ArgumentList "start"
+                # Aguarda 15 segundos para o servidor subir
+                Start-Sleep -Seconds 15
+                '''
             }
         }
 
@@ -29,6 +33,12 @@ pipeline {
                 echo 'Rodando Cypress...'
                 bat 'npx cypress run'
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finalizado.'
         }
     }
 }
