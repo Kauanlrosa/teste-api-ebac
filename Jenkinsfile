@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        // Aguarda 15 segundos antes de rodar os testes
-        WAIT_TIME = 15
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -24,12 +19,32 @@ pipeline {
         stage('Iniciar servidor da API') {
             steps {
                 echo 'Iniciando servidor da aplicação...'
-                // Inicia o backend em background
+                // Inicia o backend em novo terminal
                 bat 'start cmd /c "npm start"'
-                
-                // Aguarda o backend subir (em segundos)
-                echo "Aguardando ${env.WAIT_TIME} segundos para o servidor iniciar..."
-                bat "powershell -Command \"Start-Sleep -Seconds ${env.WAIT_TIME}\""
+
+                // Espera a API ficar disponível na porta 3000
+                echo 'Aguardando servidor subir...'
+                powershell """
+                \$maxRetries = 20
+                \$retry = 0
+                while (\$retry -lt \$maxRetries) {
+                    try {
+                        \$response = Invoke-WebRequest -Uri http://localhost:3000/ -UseBasicParsing -TimeoutSec 3
+                        if (\$response.StatusCode -eq 200) {
+                            Write-Host 'Servidor ativo!'
+                            break
+                        }
+                    } catch {
+                        Write-Host 'Servidor ainda não ativo, aguardando 3s...'
+                    }
+                    Start-Sleep -Seconds 3
+                    \$retry++
+                }
+                if (\$retry -eq \$maxRetries) {
+                    Write-Error 'Servidor não subiu em tempo hábil!'
+                    exit 1
+                }
+                """
             }
         }
 
