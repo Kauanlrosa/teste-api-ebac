@@ -4,19 +4,27 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo 'Clonando repositório...'
                 checkout scm
             }
         }
 
         stage('Instalar dependências') {
             steps {
-                echo 'Instalando pacotes...'
                 bat 'npm install'
             }
         }
 
-        stage('Executar testes') {
+        stage('Rodar servidor') {
+            steps {
+                echo 'Iniciando servidor da aplicação...'
+                // Inicia em background
+                bat 'start /B npm start'
+                // Espera 15 segundos para o servidor iniciar (ajuste se necessário)
+                bat 'timeout /t 15 /nobreak'
+            }
+        }
+
+        stage('Executar testes Cypress') {
             steps {
                 echo 'Rodando Cypress...'
                 bat 'npx cypress run'
